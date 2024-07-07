@@ -103,7 +103,7 @@ class WorkUAParser:
             ]
 
             location_tag = soup.find("dt", text="Місто проживання:")
-            city = (
+            location = (
                 location_tag.find_next_sibling("dd").get_text(strip=True)
                 if location_tag
                 else "Unknown"
@@ -112,7 +112,8 @@ class WorkUAParser:
             salary_tag = soup.find("span", class_="text-muted-print")
             salary = salary_tag.get_text(strip=True) if salary_tag else "Unknown"
 
-            return Resume(job_position, experience, skills, city, salary)
+            return Resume(job_position, experience, skills, location, salary)
+
         except Exception as e:
             print(f"Error parsing individual resume: {e}")
             return None
