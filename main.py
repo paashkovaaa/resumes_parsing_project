@@ -1,3 +1,4 @@
+from parsers.robota_ua_parser import RobotaUAParser
 from parsers.work_ua_parser import WorkUAParser
 
 
@@ -6,7 +7,9 @@ def main():
     location = "kyiv"
 
     try:
-        all_resumes = WorkUAParser.fetch_resumes(position, location)
+        all_resumes = RobotaUAParser.fetch_resumes(
+            position, location
+        ) + WorkUAParser.fetch_resumes(position, location)
 
         if not all_resumes:
             print("No resumes fetched or an error occurred.")
