@@ -35,7 +35,7 @@ class WorkUAParser:
                 resume_response.raise_for_status()
 
                 resume_soup = BeautifulSoup(resume_response.content, "html.parser")
-                resume = WorkUAParser.parse_resume(resume_soup)
+                resume = WorkUAParser.parse_resume(resume_soup, resume_url)
                 if resume:
                     resumes.append(resume)
 
@@ -63,7 +63,7 @@ class WorkUAParser:
         ]
 
     @staticmethod
-    def parse_resume(soup):
+    def parse_resume(soup, link):
         """
         Parses a resume from the given BeautifulSoup object.
         """
@@ -74,7 +74,7 @@ class WorkUAParser:
             location = WorkUAParser._extract_location(soup)
             salary = WorkUAParser._extract_salary(soup)
 
-            return Resume(job_position, experience, skills, location, salary)
+            return Resume(job_position, experience, skills, location, salary, link)
 
         except Exception as e:
             print(f"Error parsing individual resume: {e}")
