@@ -13,7 +13,7 @@ class WebDriverConfig:
     @staticmethod
     def get_driver():
         options = ChromeOptions()
-        options.headless = True  # Set to True for production
+        options.headless = False  # Set to True for production
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--incognito")
 
@@ -67,7 +67,7 @@ class RobotaUAParser:
 
                 resume_page_content = driver.page_source
                 resume_soup = BeautifulSoup(resume_page_content, "html.parser")
-                resume = RobotaUAParser.parse_resume(resume_soup)
+                resume = RobotaUAParser.parse_resume(resume_soup, resume_url)
                 if resume:
                     resumes.append(resume)
                 else:
@@ -101,7 +101,7 @@ class RobotaUAParser:
         return f"{RobotaUAParser.BASE_URL}/{resume_id}/"
 
     @staticmethod
-    def parse_resume(soup):
+    def parse_resume(soup, link):
         """
         Parses a resume from the given BeautifulSoup object.
         """
@@ -112,7 +112,7 @@ class RobotaUAParser:
             location = RobotaUAParser._extract_location(soup)
             salary = RobotaUAParser._extract_salary(soup)
 
-            return Resume(job_position, experience, skills, location, salary)
+            return Resume(job_position, experience, skills, location, salary, link)
 
         except Exception as e:
             print(f"Error parsing individual resume: {e}")
@@ -155,10 +155,14 @@ class RobotaUAParser:
         """
         Extracts the location from the resume.
         """
-        location_tag = soup.find("lib-resume-main-info").find(
-            "p", class_="santa-typo-regular santa-text-black-700"
-        )
-        return location_tag.get_text(strip=True) if location_tag else "Unknown"
+        location_info = soup.find("lib-resume-main-info")
+        if location_info:
+            location_tag = location_info.find(
+                "p", class_="santa-typo-regular santa-text-black-700"
+            )
+            return location_tag.get_text(strip=True)
+        else:
+            return "Unknown"
 
     @staticmethod
     def _extract_salary(soup):
@@ -166,12 +170,16 @@ class RobotaUAParser:
         Extracts the salary from the resume.
         """
         resume_main_info_tag = soup.find("lib-resume-main-info")
-
-        if resume_main_info_tag.find(
-            "p", class_="santa-flex santa-items-center santa-mb-10"
-        ):
-            salary_tag = resume_main_info_tag.find(
-                "p",
-                class_="santa-flex santa-items-center santa-mb-10",
-            ).find("span", class_="santa-typo-regular santa-text-black-700")
-            return salary_tag.get_text(strip=True) if salary_tag else "Unknown"
+        if resume_main_info_tag:
+            salary_info = resume_main_info_tag.find(
+                "p", class_="santa-flex santa-items-center santa-mb-10"
+            )
+            if salary_info:
+                salary_tag = salary_info.find(
+                    "span", class_="santa-typo-regular santa-text-black-700"
+                )
+                return salary_tag.get_text(strip=True) if salary_tag else "Unknown"
+            else:
+                return "Unknown"
+        else:
+            return "Unknown"
