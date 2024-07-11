@@ -57,8 +57,8 @@ async def select_site(update: Update, _: CallbackContext) -> int:
 
     user_data[update.message.from_user.id] = {"site": site}
     await update.message.reply_text(
-        "You have selected {}.\n\nPlease set job position you want to search (example: data scientist):\n/n"
-        "<i>If nothing happens, please try again</i>".format(site)
+        "You have selected {}.\n\nPlease set job position you want to search (example: data scientist):\n\n"
+        "If nothing happens, please try again".format(site)
     )
     return SET_POSITION
 
@@ -71,7 +71,7 @@ async def set_position(update: Update, _: CallbackContext) -> int:
     user_data[update.message.from_user.id]["position"] = position
     await update.message.reply_text(
         "Position set to {}.\n\nPlease enter the location (example: kyiv) or type 'skip' to skip:\n\n"
-        "<i>If nothing happens, please try again</i>".format(position)
+        "If nothing happens, please try again".format(position)
     )
     return SET_LOCATION
 
@@ -90,7 +90,7 @@ async def set_location(update: Update, _: CallbackContext) -> int:
     await update.message.reply_text(
         "Location set.\n\n"
         "Please enter the keywords, separated by commas (example: python, sql) or type 'skip' to skip:\n\n"
-        "<i>If nothing happens, please try again</i>"
+        "If nothing happens, please try again"
     )
     return SET_KEYWORDS
 
@@ -109,7 +109,7 @@ async def set_keywords(update: Update, _: CallbackContext) -> int:
 
     await update.message.reply_text(
         "Keywords set.\n\nType /fetch to get resumes based on these criteria.\n\n"
-        "<i>If nothing happens, please try again</i>",
+        "If nothing happens, please try again",
         reply_markup=ReplyKeyboardRemove(),
     )
 
