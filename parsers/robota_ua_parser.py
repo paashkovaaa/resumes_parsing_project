@@ -35,7 +35,7 @@ class RobotaUAParser:
             position (str): The job position to search for.
             location (str, optional): The location to search in. Defaults to None.
             keywords (str, optional): The keywords to search for. Defaults to None.
-            limit (int, optional): The maximum number of resumes to fetch. Defaults to None.
+            limit (int, optional): The maximum number of resumes to return. Defaults to None.
 
         Returns:
             list: A list of Resume objects.
