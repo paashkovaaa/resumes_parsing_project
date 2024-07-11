@@ -7,13 +7,6 @@ Resumes Parser Bot is a Telegram bot that allows users to parse resumes from wor
 - Choose between two job sites: work.ua and robota.ua.
 - Set job position, location, and keywords to filter resumes.
 - Fetch and display resumes based on specified criteria.
-- Handle errors and notify users to try again in case of issues.
-
-## Requirements
-
-- Python 3.7+
-- `httpx`
-- `python-telegram-bot`
 
 ## Installation
 
@@ -44,7 +37,7 @@ Resumes Parser Bot is a Telegram bot that allows users to parse resumes from wor
 5. Create a `.env` file based on the `.env.sample` and add your bot token:
 
     ```env
-    TOKEN=your-telegram-bot-token
+    TELEGRAM_BOT_TOKEN=your-telegram-bot-token
     ```
 
 ## Usage
