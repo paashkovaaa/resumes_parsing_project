@@ -3,19 +3,22 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from data.resume import Resume
+from utils.filters import sort_resumes_by_relevance
 
 
 class WorkUAParser:
     BASE_URL = "https://www.work.ua/resumes"
 
     @staticmethod
-    def fetch_resumes(position, location=None):
+    def fetch_resumes(position, location=None, keywords=None, limit=None):
         """
-        Fetches resumes from Work.ua based on the given position and location.
+        Fetches resumes from Work.ua based on the given position, location, keywords and limit.
 
         Args:
             position (str): The job position to search for.
             location (str, optional): The location to search in. Defaults to None.
+            keywords (str, optional): The keywords to search for. Defaults to None.
+            limit (int, optional): The maximum number of resumes to fetch. Defaults to None.
 
         Returns:
             list: A list of Resume objects.
@@ -39,7 +42,11 @@ class WorkUAParser:
                 if resume:
                     resumes.append(resume)
 
-            return resumes
+            sorted_resumes = sort_resumes_by_relevance(resumes, keywords)
+            if limit:
+                sorted_resumes = sorted_resumes[:limit]
+
+            return sorted_resumes
 
         except requests.exceptions.RequestException as e:
             print(f"Error fetching resumes: {e}")
@@ -54,7 +61,7 @@ class WorkUAParser:
         if location:
             return f"{WorkUAParser.BASE_URL}-{location}-{position}/"
         else:
-            return f"{WorkUAParser.BASE_URL}/-{position}/"
+            return f"{WorkUAParser.BASE_URL}-{position}/"
 
     @staticmethod
     def _extract_resume_ids(soup):
@@ -127,7 +134,7 @@ class WorkUAParser:
         """
         skills_tags = soup.find_all("span", class_="label label-skill label-gray-100")
         return [
-            tag.find("span", class_="ellipsis").get_text(strip=True)
+            tag.find("span", class_="ellipsis").get_text(strip=True).lower()
             for tag in skills_tags
         ]
 
@@ -149,4 +156,4 @@ class WorkUAParser:
         Extracts the salary from the resume.
         """
         salary_tag = soup.find("span", class_="text-muted-print")
-        return salary_tag.get_text(strip=True) if salary_tag else "Unknown"
+        return salary_tag.get_text(strip=True)[2:] if salary_tag else "Unknown"
