@@ -21,7 +21,7 @@ class Resume:
         - Skills: +2 points if specified.
         - Location: +1 point if specified.
         - Salary: +1 point if specified.
-        - Skills matching keywords: +2 points for each matching skill.
+        - Skills matching keywords: +5 points for each matching skill.
 
         Args:
             keywords (List[str]): List of keywords to match in the skills section.
@@ -49,6 +49,6 @@ class Resume:
 
         skill_keywords = set(keywords)
         matching_skills = skill_keywords.intersection(set(self.skills))
-        score += 2 * len(matching_skills)
+        score += 5 * len(matching_skills)
 
         return score
