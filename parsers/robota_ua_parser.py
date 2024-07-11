@@ -7,13 +7,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from data.resume import Resume
+from utils.filters import sort_resumes_by_relevance
 
 
 class WebDriverConfig:
     @staticmethod
     def get_driver():
         options = ChromeOptions()
-        options.headless = False  # Set to True for production
+        options.headless = True
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--incognito")
 
@@ -26,16 +27,19 @@ class RobotaUAParser:
     BASE_URL = "https://robota.ua/candidates"
 
     @staticmethod
-    def fetch_resumes(position, location=None):
+    def fetch_resumes(position, location=None, keywords=None, limit=None):
         """
-        Fetches resumes from Robota.ua based on the given position and location.
+        Fetches resumes from Robota.ua based on the given position, location, keywords and limit.
 
         Args:
             position (str): The job position to search for.
             location (str, optional): The location to search in. Defaults to None.
+            keywords (str, optional): The keywords to search for. Defaults to None.
+            limit (int, optional): The maximum number of resumes to fetch. Defaults to None.
 
         Returns:
             list: A list of Resume objects.
+
         """
         try:
             driver = WebDriverConfig.get_driver()
@@ -72,9 +76,12 @@ class RobotaUAParser:
                     resumes.append(resume)
                 else:
                     print(f"Failed to parse resume at URL: {resume_url}")
+            sorted_resumes = sort_resumes_by_relevance(resumes, keywords)
+            if limit:
+                sorted_resumes = sorted_resumes[:limit]
 
             driver.quit()
-            return resumes
+            return sorted_resumes
 
         except Exception as e:
             print(f"Error fetching resumes: {e}")
@@ -148,7 +155,7 @@ class RobotaUAParser:
             "div",
             class_="santa-m-0 santa-mb-20 760:santa-mb-40 last:santa-mb-0 santa-typo-regular santa-text-black-700 santa-list empty:santa-hidden",
         )
-        return skills_tag.get_text(strip=True) if skills_tag else "Unknown"
+        return skills_tag.get_text(strip=True).lower() if skills_tag else "Unknown"
 
     @staticmethod
     def _extract_location(soup):
