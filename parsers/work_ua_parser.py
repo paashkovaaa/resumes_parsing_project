@@ -1,5 +1,4 @@
 import re
-
 import requests
 from bs4 import BeautifulSoup
 from data.resume import Resume
@@ -9,38 +8,76 @@ from utils.filters import sort_resumes_by_relevance
 class WorkUAParser:
     BASE_URL = "https://www.work.ua/resumes"
 
+    EXPERIENCE_MAP = {
+        "0": "0",  # No experience
+        "1": "1",  # Up to 1 year
+        "2": "164",  # From 1 to 2
+        "3": "165",  # From 2 to 5
+        "4": "166",  # More than 5
+    }
+
+    SALARY_MAP = {
+        "5000": "5",  # up to 5000
+        "15000": "11",  # up to 15000
+        "20000": "12",  # up to 20000
+        "25000": "13",  # up to 25000
+        "30000": "14",  # up to 30000
+        "40000": "15",  # up to 40000
+        "50000": "16",  # up to 50000
+        "100000": "17",  # up to 100000
+    }
+
     @staticmethod
-    def fetch_resumes(position, location=None, keywords=None, limit=None):
+    def fetch_resumes(
+        position, location=None, keywords=None, experience=None, salary=None, limit=None
+    ):
         """
-        Fetches resumes from Work.ua based on the given position, location, keywords and limit.
+        Fetches resumes from Robota.ua based on the given position, location, keywords and limit.
 
         Args:
             position (str): The job position to search for.
             location (str, optional): The location to search in. Defaults to None.
             keywords (str, optional): The keywords to search for. Defaults to None.
+            experience (int, optional): The experience to search for. Defaults to None.
+            salary (int, optional): The salary to search for. Defaults to None.
             limit (int, optional): The maximum number of resumes to return. Defaults to None.
 
         Returns:
             list: A list of Resume objects.
+
         """
         try:
-            url = WorkUAParser._build_url(position, location)
-            response = requests.get(url)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.content, "html.parser")
+            page = 1
             resumes = []
 
-            resume_ids = WorkUAParser._extract_resume_ids(soup)
-            for resume_id in resume_ids:
-                resume_url = f"{WorkUAParser.BASE_URL}/{resume_id}/"
-                resume_response = requests.get(resume_url)
-                resume_response.raise_for_status()
+            while True:
+                url = WorkUAParser._build_work_ua_url(
+                    position, location, experience, salary, page
+                )
+                response = requests.get(url)
+                response.raise_for_status()
 
-                resume_soup = BeautifulSoup(resume_response.content, "html.parser")
-                resume = WorkUAParser.parse_resume(resume_soup, resume_url)
-                if resume:
-                    resumes.append(resume)
+                soup = BeautifulSoup(response.content, "html.parser")
+                resume_ids = WorkUAParser._extract_resume_ids(soup)
+                if not resume_ids:
+                    break
+
+                for resume_id in resume_ids:
+                    resume_url = f"{WorkUAParser.BASE_URL}/{resume_id}/"
+                    resume_response = requests.get(resume_url)
+                    resume_response.raise_for_status()
+
+                    resume_soup = BeautifulSoup(resume_response.content, "html.parser")
+                    resume = WorkUAParser.parse_resume(resume_soup, resume_url)
+                    if resume:
+                        resumes.append(resume)
+                    else:
+                        print(f"Failed to parse resume at URL: {resume_url}")
+
+                if not WorkUAParser._has_next_page(soup):
+                    break
+
+                page += 1
 
             sorted_resumes = sort_resumes_by_relevance(resumes, keywords)
             if limit:
@@ -57,11 +94,48 @@ class WorkUAParser:
             return []
 
     @staticmethod
-    def _build_url(position, location):
+    def _has_next_page(soup):
+        """
+        Checks if there is a next page available in the pagination.
+        """
+        next_page = soup.find("a", class_="glyphicon-chevron-right")
+        if next_page and "pointer-none-in-all" not in next_page.get("class", []):
+            return True
+        return False
+
+    @staticmethod
+    def _build_work_ua_url(position, location, experience, salary, page):
+        """
+        Builds the URL for Work.ua based on the given position, location, minimum experience, and maximum salary.
+
+        Args:
+            position (str): The job position to search for.
+            location (str, optional): The location to search in. Defaults to None.
+            experience (str, optional): Years of experience required. Defaults to None.
+            salary (str, optional): Maximum expected salary. Defaults to None.
+            page (int, optional): The page to search for.
+
+        Returns:
+            str: The constructed URL.
+        """
+        base_url = WorkUAParser.BASE_URL
+        position = position.replace(" ", "+")
         if location:
-            return f"{WorkUAParser.BASE_URL}-{location}-{position}/"
+            url = f"{base_url}-{location}-{position}/"
         else:
-            return f"{WorkUAParser.BASE_URL}-{position}/"
+            url = f"{base_url}-{position}/"
+
+        query_params = []
+        if salary and salary in WorkUAParser.SALARY_MAP:
+            query_params.append(f"salaryto={WorkUAParser.SALARY_MAP[salary]}")
+        if experience and experience in WorkUAParser.EXPERIENCE_MAP:
+            query_params.append(f"experience={WorkUAParser.EXPERIENCE_MAP[experience]}")
+        if query_params:
+            url += "?" + "&".join(query_params)
+
+        url += f"&page={page}"
+
+        return url
 
     @staticmethod
     def _extract_resume_ids(soup):
@@ -129,14 +203,14 @@ class WorkUAParser:
 
     @staticmethod
     def _extract_skills(soup):
-        """
-        Extracts the skills from the resume.
-        """
+
         skills_tags = soup.find_all("span", class_="label label-skill label-gray-100")
-        return [
+        skills = [
             tag.find("span", class_="ellipsis").get_text(strip=True).lower()
             for tag in skills_tags
         ]
+
+        return ", ".join(skills)
 
     @staticmethod
     def _extract_location(soup):

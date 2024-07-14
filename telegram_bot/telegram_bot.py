@@ -1,16 +1,6 @@
 import logging
-
-from telegram import (
-    Update,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
-)
-from telegram.ext import (
-    CallbackContext,
-    ConversationHandler,
-    ContextTypes,
-)
-
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram.ext import CallbackContext, ConversationHandler
 from parsers.robota_ua_parser import RobotaUAParser
 from parsers.work_ua_parser import WorkUAParser
 
@@ -19,12 +9,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-SELECT_SITE, SET_POSITION, SET_LOCATION, SET_KEYWORDS, FETCH_RESUMES = range(5)
+(
+    SELECT_SITE,
+    SET_POSITION,
+    SET_LOCATION,
+    SET_YEARS_OF_EXPERIENCE,
+    SET_EXPECTED_SALARY,
+    SET_KEYWORDS,
+    FETCH_RESUMES,
+) = range(7)
 
 user_data = {}
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def start(update: Update, context: CallbackContext) -> int:
     """
     Starts the conversation and asks the user to choose a site.
     """
@@ -44,7 +42,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return SELECT_SITE
 
 
-async def select_site(update: Update, _: CallbackContext) -> int:
+async def select_site(update: Update, context: CallbackContext) -> int:
     """
     Stores the selected site and asks for the job position.
     """
@@ -57,28 +55,28 @@ async def select_site(update: Update, _: CallbackContext) -> int:
 
     user_data[update.message.from_user.id] = {"site": site}
     await update.message.reply_text(
-        "You have selected {}.\n\nPlease set job position you want to search (example: data scientist):\n\n"
-        "If nothing happens, please try again".format(site)
+        f"You have selected {site}.\n\nPlease set the job position you want to search (example: data scientist):\n\n"
+        "If nothing happens, please try again"
     )
     return SET_POSITION
 
 
-async def set_position(update: Update, _: CallbackContext) -> int:
+async def set_position(update: Update, context: CallbackContext) -> int:
     """
     Stores the job position and asks for the location.
     """
     position = update.message.text.lower()
     user_data[update.message.from_user.id]["position"] = position
     await update.message.reply_text(
-        "Position set to {}.\n\nPlease enter the location (example: kyiv) or type 'skip' to skip:\n\n"
-        "If nothing happens, please try again".format(position)
+        f"Position set to {position}.\n\nPlease enter the location (example: kyiv) or type 'skip' to skip:\n\n"
+        "If nothing happens, please try again"
     )
     return SET_LOCATION
 
 
-async def set_location(update: Update, _: CallbackContext) -> int:
+async def set_location(update: Update, context: CallbackContext) -> int:
     """
-    Stores the location and asks for keywords.
+    Stores the location and asks for years of experience.
     """
     location = update.message.text.lower()
 
@@ -87,15 +85,119 @@ async def set_location(update: Update, _: CallbackContext) -> int:
     else:
         user_data[update.message.from_user.id]["location"] = None
 
+    site = user_data[update.message.from_user.id]["site"]
+    if site == "work.ua":
+        await update.message.reply_text(
+            "Location set.\n\nPlease enter the years of experience\n"
+            "(0 - No experience,\n"
+            "1 - Up to 1 year,\n"
+            "2 - From 1 to 2,\n"
+            "3 - From 2 to 5,\n"
+            "4 - More than 5 years)\n"
+            "or type 'skip' to skip.\n\n"
+            "If nothing happens, please try again"
+        )
+
+    if site == "robota.ua":
+        await update.message.reply_text(
+            "Location set.\n\nPlease enter the years of experience\n"
+            "(0 - No experience,\n"
+            "1 - Up to 1 year,\n"
+            "2 - From 1 to 2,\n"
+            "3 - From 2 to 5,\n"
+            "4 - From 5 to 10 years,\n"
+            "5 - More than 10 years)\n"
+            "or type 'skip' to skip.\n\n"
+            "If nothing happens, please try again"
+        )
+    return SET_YEARS_OF_EXPERIENCE
+
+
+async def set_years_of_experience(update: Update, context: CallbackContext) -> int:
+    """
+    Stores the minimum years of experience and asks for expected salary.
+    """
+    experience = update.message.text.lower()
+    site = user_data[update.message.from_user.id]["site"]
+
+    if site == "work.ua":
+        if experience != "skip":
+            if experience in WorkUAParser.EXPERIENCE_MAP.keys():
+                user_data[update.message.from_user.id]["experience"] = experience
+            else:
+                await update.message.reply_text(
+                    "Invalid input.\n\nPlease enter the years of experience\n"
+                    "(0 - No experience,\n"
+                    "1 - Up to 1 year,\n"
+                    "2 - From 1 to 2,\n"
+                    "3 - From 2 to 5,\n"
+                    "4 - More than 5 years)\n"
+                    "5 - More than 10 years) or type 'skip' to skip."
+                )
+                return SET_YEARS_OF_EXPERIENCE
+        else:
+            user_data[update.message.from_user.id]["experience"] = None
+
+        await update.message.reply_text(
+            "Years of experience set.\n\n"
+            "Please enter the expected maximum salary in uah\n\n"
+            "Possible options:\n"
+            "5000, 15000, 20000, 25000, 30000, 40000, 50000, 100000\n"
+            "or type 'skip' to skip:\n\n"
+            "If nothing happens, please try again"
+        )
+
+    if site == "robota.ua":
+        if experience != "skip":
+            user_data[update.message.from_user.id]["experience"] = experience
+        else:
+            user_data[update.message.from_user.id]["experience"] = None
+
+        await update.message.reply_text(
+            "Years of experience set.\n\n"
+            "Please enter the expected maximum salary in uah (example: 75000)\n"
+            "or type 'skip' to skip:\n\n"
+            "If nothing happens, please try again"
+        )
+
+    return SET_EXPECTED_SALARY
+
+
+async def set_expected_salary(update: Update, context: CallbackContext) -> int:
+    """
+    Stores the expected maximum salary and asks for keywords.
+    """
+    salary = update.message.text.lower()
+    site = user_data[update.message.from_user.id]["site"]
+    if site == "work.ua":
+        if salary != "skip":
+            if salary in WorkUAParser.SALARY_MAP.keys():
+                user_data[update.message.from_user.id]["salary"] = salary
+            else:
+                await update.message.reply_text(
+                    "Please enter the expected maximum salary in uah\n\n"
+                    "Possible options:\n"
+                    "5000, 15000, 20000, 25000, 30000, 40000, 50000, 100000\n"
+                    "or type 'skip' to skip:\n\n"
+                    "If nothing happens, please try again"
+                )
+        else:
+            user_data[update.message.from_user.id]["salary"] = None
+    if site == "robota.ua":
+        if salary != "skip":
+            user_data[update.message.from_user.id]["salary"] = salary
+        else:
+            user_data[update.message.from_user.id]["salary"] = None
+
     await update.message.reply_text(
-        "Location set.\n\n"
+        "Expected maximum salary set.\n\n"
         "Please enter the keywords, separated by commas (example: python, sql) or type 'skip' to skip:\n\n"
         "If nothing happens, please try again"
     )
     return SET_KEYWORDS
 
 
-async def set_keywords(update: Update, _: CallbackContext) -> int:
+async def set_keywords(update: Update, context: CallbackContext) -> int:
     """
     Stores the keywords and asks the user to fetch resumes.
     """
@@ -116,7 +218,7 @@ async def set_keywords(update: Update, _: CallbackContext) -> int:
     return FETCH_RESUMES
 
 
-async def fetch_resumes(update: Update, _: CallbackContext) -> int:
+async def fetch_resumes(update: Update, context: CallbackContext) -> int:
     """
     Fetches the resumes based on the stored criteria.
     """
@@ -126,11 +228,27 @@ async def fetch_resumes(update: Update, _: CallbackContext) -> int:
     position = user_data[update.message.from_user.id]["position"]
     location = user_data[update.message.from_user.id]["location"]
     keywords = user_data[update.message.from_user.id]["keywords"]
+    experience = user_data[update.message.from_user.id].get("experience")
+    salary = user_data[update.message.from_user.id].get("salary")
 
     if site == "work.ua":
-        resumes = WorkUAParser.fetch_resumes(position, location, keywords, limit=5)
+        resumes = WorkUAParser.fetch_resumes(
+            position,
+            location,
+            keywords,
+            limit=5,
+            experience=experience,
+            salary=salary,
+        )
     elif site == "robota.ua":
-        resumes = RobotaUAParser.fetch_resumes(position, location, keywords, limit=5)
+        resumes = RobotaUAParser.fetch_resumes(
+            position,
+            location,
+            keywords,
+            limit=5,
+            experience=experience,
+            salary=salary,
+        )
 
     if resumes:
         for resume in resumes:
@@ -150,7 +268,7 @@ async def fetch_resumes(update: Update, _: CallbackContext) -> int:
     return ConversationHandler.END
 
 
-async def cancel(update: Update, _: CallbackContext) -> int:
+async def cancel(update: Update, context: CallbackContext) -> int:
     """
     Cancels the current conversation.
     """
