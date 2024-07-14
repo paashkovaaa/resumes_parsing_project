@@ -20,6 +20,10 @@ from telegram_bot.telegram_bot import (
     set_keywords,
     fetch_resumes,
     cancel,
+    SET_YEARS_OF_EXPERIENCE,
+    set_years_of_experience,
+    SET_EXPECTED_SALARY,
+    set_expected_salary,
 )
 
 from telegram_bot.telegram_bot import start
@@ -39,6 +43,12 @@ def main() -> None:
             ],
             SET_LOCATION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, set_location)
+            ],
+            SET_YEARS_OF_EXPERIENCE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, set_years_of_experience)
+            ],
+            SET_EXPECTED_SALARY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, set_expected_salary)
             ],
             SET_KEYWORDS: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, set_keywords)
