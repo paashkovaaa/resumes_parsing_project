@@ -1,3 +1,5 @@
+import os
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -13,14 +15,23 @@ from utils.filters import sort_resumes_by_relevance
 class WebDriverConfig:
     @staticmethod
     def get_driver():
+        chrome_install = ChromeDriverManager().install()
+
+        folder = os.path.dirname(chrome_install)
+        chromedriver_path = os.path.join(folder, "chromedriver.exe")
+
+        service = ChromeService(chromedriver_path)
+
         options = ChromeOptions()
         options.headless = True
-        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument(
+            "--disable-blink-features=AutomationControlled"
+        )
         options.add_argument("--incognito")
 
-        return webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()), options=options
-        )
+        driver = webdriver.Chrome(service=service, options=options)
+
+        return driver
 
 
 class RobotaUAParser:
